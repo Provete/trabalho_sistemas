@@ -1,9 +1,9 @@
 import numpy as np
-#import sys
+import sys
 
 
 def ler_entrada() -> tuple:
-    NOME_ENTRADA = "entrada.txt"
+    NOME_ENTRADA = sys.argv[1]
 
     with open(NOME_ENTRADA, 'r') as entrada:
         quantidade_sistemas, dimencao_matriz, margem_erro = entrada.readline().split(' ')
@@ -61,48 +61,3 @@ def somar_linhas_com_multiplicador(linha1: np.array
 A, B, dimencao_matriz, quantidade_sistemas, margem_erro = ler_entrada()
 
 print(gerar_matriz_auxiliar(A, B[0]))
-
-#Eliminação de Gauss
-def pivoteamento(b : np.array) -> np.array:
-
-    n = dimencao_matriz
-
-    for i in range(n-1):
-        pivo = A[i][i]
-        troca_pivo = i
-
-        #Identificando maior pivo da coluna
-        for j in range(i+1, n):
-            if abs(A[j, i]) > abs(pivo):
-                pivo = A[j][i]
-                troca_pivo = j
-
-        #troca de linha, pivo na posição diferente de i
-        if troca_pivo != i:
-            b[i], b[troca_pivo] = b[troca_pivo], b[i]
-            for k in range(n):
-                A[i, k], A[troca_pivo, k] = A[troca_pivo, k], A[i, k]
-
-        #divisão dos elementos
-        for j in range(i+1, n):
-            matriz_aux = A[j][i] / A[i][i]
-            A[j][i] = 0
-
-            for k in range(i + 1, n):
-                A[j, k] = A[j, k] - (matriz_aux * A[i, k])
-            b[j] = b[j] - (matriz_aux * b[i])
-
-    result: np.array = np.zeros(n)
-    #calculo triangular superior
-    for i in range(n-1, -1, -1):
-        result[i] = b[i] / A[i][i]
-        for j in range(i-1, -1, -1):
-            b[j] = b[j] - A[j, i] * result[i]
-
-    print(result)
-
-    return result
-
-#chamada privoteamente para todos os sistemas
-for i in range(0, quantidade_sistemas):
-    pivoteamento(B[i])
