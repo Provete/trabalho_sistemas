@@ -2,6 +2,8 @@ import numpy
 import numpy as np
 import sys
 
+NUMERO_MAXIMO_ITERACAO: int = 400
+
 
 def ler_entrada() -> tuple:
     NOME_ENTRADA = sys.argv[1]
@@ -118,9 +120,12 @@ def resolver_sistema_gauss_jacob(A: np.array,
                                  b: np.array,
                                  X: np.array,
                                  margem_erro: float) -> np.array:
-    while True:
-        novoX: np.array = X.copy()
-        novoX.fill(0)
+    numero_iteracoes: int = 0
+    novoX: np.array = X.copy()
+    erro_relativo: int = -1
+
+    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
+        numero_iteracoes += 1
 
         for i in range(X.size):
             novoX[i] = b[i]
@@ -134,17 +139,27 @@ def resolver_sistema_gauss_jacob(A: np.array,
         erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
         if erro_relativo <= margem_erro:
+            print(f'Sistema resolvido em {numero_iteracoes} iterações')
             return novoX
         else:
             X = novoX
+
+    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
+    print('Solução até então: ', novoX)
+    print('Com erro relativo de: ', erro_relativo)
+    return None
 
 
 def resolver_sistema_gauss_seidel(A: np.array,
                                   b: np.array,
                                   X: np.array,
                                   margem_erro: float) -> np.array:
-    while True:
-        novoX: np.array = X.copy()
+    numero_iteracoes: int = 0
+    novoX: np.array = X.copy()
+    erro_relativo: float = -1
+
+    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
+        numero_iteracoes += 1
 
         for i in range(X.size):
             novoX[i] = b[i]
@@ -158,9 +173,15 @@ def resolver_sistema_gauss_seidel(A: np.array,
         erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
         if erro_relativo <= margem_erro:
+            print(f'Sistema resolvido em {numero_iteracoes} iterações')
             return novoX
         else:
             X = novoX
+
+    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
+    print('Solução até então: ', novoX)
+    print('Com erro relativo de: ', erro_relativo)
+    return None
 
 
 # chamada pivoteamento para todos os sistemas
