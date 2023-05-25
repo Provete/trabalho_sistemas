@@ -1,29 +1,28 @@
 import numpy
 import numpy as np
-import math as m
 import sys
 
 
 def ler_entrada() -> tuple:
-    NOME_ENTRADA = "entrada.txt"
+    NOME_ENTRADA = sys.argv[1]
 
     with open(NOME_ENTRADA, 'r') as entrada:
         quantidade_sistemas, dimencao_matriz, margem_erro = entrada.readline().split(' ')
 
-        quantidade_sistemas = int(quantidade_sistemas)
-        dimencao_matriz = int(dimencao_matriz)
-        margem_erro = float(margem_erro)
+        quantidade_sistemas = int(quantidade_sistemas.strip())
+        dimencao_matriz = int(dimencao_matriz.strip())
+        margem_erro = float(margem_erro.strip())
 
         A: np.array = np.zeros((dimencao_matriz, dimencao_matriz))
         B: np.array = np.zeros((quantidade_sistemas, dimencao_matriz))
 
         for linha in range(0, dimencao_matriz):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                A[linha][coluna] = float(valor)
+                A[linha][coluna] = float(valor.strip())
 
         for linha in range(0, quantidade_sistemas):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                B[linha][coluna] = float(valor)
+                B[linha][coluna] = float(valor.strip())
 
         return A, B, dimencao_matriz, quantidade_sistemas, margem_erro
 
@@ -105,60 +104,83 @@ def pivoteamento(A: np.array, b: np.array) -> np.array:
     return result
 
 
-def pegar_maior_magnitude(b: np.array) -> float:
-    maior: float = 0
-
-    for valor in b:
-        if m.fabs(valor) > maior:
-            maior = m.fabs(valor)
-
-    return maior
-
-
 def pegar_x_inicial(A: np.array, b: np.array) -> np.array:
     xInicial: np.array = b.copy()
     xInicial.fill(0)
-    # print(xInicial)
 
     for i in range(b.size):
-        # print(f'b[i] = {b[i]}\nA[i][i] = {A[i][i]}\n')
         xInicial[i] = b[i] / A[i][i]
 
     return xInicial
 
 
-def resolver_sistema_gauss_jacob(A: np.array, b: np.array, X: np.array, margem_erro: float) -> np.array:
-    novoX: np.array = X.copy()
-    novoX.fill(0)
+def resolver_sistema_gauss_jacob(A: np.array,
+                                 b: np.array,
+                                 X: np.array,
+                                 margem_erro: float) -> np.array:
+    while True:
+        novoX: np.array = X.copy()
+        novoX.fill(0)
 
-    for i in range(novoX.size):
-        novoX[i] = b[i]
+        for i in range(X.size):
+            novoX[i] = b[i]
 
-        for j, Aij in [(j, A[i][j]) for j in range(A.shape[0]) if j != i]:
-            novoX[i] -= Aij * X[j]
+            for j in range(A.shape[0]):
+                if i != j:
+                    novoX[i] -= A[i][j] * X[j]
+            novoX[i] /= A[i][i]
 
-        novoX[i] /= A[i][i]
+        diferenca_X = numpy.subtract(novoX, X)
+        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
-    print(f'novoX: {novoX}\n'
-          f'X: {X}\n')
-    diferenca_X = numpy.subtract(novoX, X)
-    erro_relativo = pegar_maior_magnitude(diferenca_X) / pegar_maior_magnitude(novoX)
+        if erro_relativo <= margem_erro:
+            return novoX
+        else:
+            X = novoX
 
-    print(f'erro_relativo: {erro_relativo}')
-    if erro_relativo <= margem_erro:
-        return novoX
-    else:
-        return resolver_sistema_gauss_jacob(A, b, novoX, margem_erro)
 
+def resolver_sistema_gauss_seidel(A: np.array,
+                                  b: np.array,
+                                  X: np.array,
+                                  margem_erro: float) -> np.array:
+    while True:
+        novoX: np.array = X.copy()
+
+        for i in range(X.size):
+            novoX[i] = b[i]
+
+            for j in range(A.shape[0]):
+                if i != j:
+                    novoX[i] -= A[i][j] * novoX[j]
+            novoX[i] /= A[i][i]
+
+        diferenca_X = numpy.subtract(novoX, X)
+        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
+
+        if erro_relativo <= margem_erro:
+            return novoX
+        else:
+            X = novoX
 
 
 # chamada pivoteamento para todos os sistemas
 for i in range(0, quantidade_sistemas):
-    pivoteamento(A.copy(), B[i])
+    pivoteamento(A.copy(), B[i].copy())
 
-print('\n\n\n')
+print('\n\n')
 
 print('Metodo Gauss-Jacob:')
 for i in range(0, quantidade_sistemas):
-    print(A)
-    print(resolver_sistema_gauss_jacob(A.copy(), B[i], pegar_x_inicial(A, B[i]), margem_erro))
+    print('A: \n', A)
+    print('B: \n', B[i])
+    print('\nSolução: ')
+    print(resolver_sistema_gauss_jacob(A.copy(), B[i].copy(), pegar_x_inicial(A, B[i]), margem_erro))
+
+print('\n\n')
+
+print('Metodo Gauss-Seidel:')
+for i in range(0, quantidade_sistemas):
+    print('A: \n', A)
+    print('B: \n', B[i])
+    print('\nSolução: ')
+    print(resolver_sistema_gauss_seidel(A.copy(), B[i].copy(), pegar_x_inicial(A, B[i]), margem_erro))
