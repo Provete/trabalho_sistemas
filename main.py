@@ -104,6 +104,11 @@ def pivoteamento(A: np.array, b: np.array) -> np.array:
 
     return result
 
+#LU
+def pivoteamento(A: np.array, b: np.array) -> np.array:
+    print(b)
+    n = dimencao_matriz
+
 
 def pegar_maior_magnitude(b: np.array) -> float:
     maior: float = 0
@@ -162,3 +167,10 @@ print('Metodo Gauss-Jacob:')
 for i in range(0, quantidade_sistemas):
     print(A)
     print(resolver_sistema_gauss_jacob(A.copy(), B[i], pegar_x_inicial(A, B[i]), margem_erro))
+
+def main():
+
+
+
+if __name__ == '__main__':
+    main()
