@@ -1,29 +1,30 @@
 import numpy
 import numpy as np
-import math as m
 import sys
+
+NUMERO_MAXIMO_ITERACAO: int = 400
 
 
 def ler_entrada() -> tuple:
-    NOME_ENTRADA = "entrada.txt"
+    NOME_ENTRADA = sys.argv[1]
 
     with open(NOME_ENTRADA, 'r') as entrada:
         quantidade_sistemas, dimencao_matriz, margem_erro = entrada.readline().split(' ')
 
-        quantidade_sistemas = int(quantidade_sistemas)
-        dimencao_matriz = int(dimencao_matriz)
-        margem_erro = float(margem_erro)
+        quantidade_sistemas = int(quantidade_sistemas.strip())
+        dimencao_matriz = int(dimencao_matriz.strip())
+        margem_erro = float(margem_erro.strip())
 
         A: np.array = np.zeros((dimencao_matriz, dimencao_matriz))
         B: np.array = np.zeros((quantidade_sistemas, dimencao_matriz))
 
         for linha in range(0, dimencao_matriz):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                A[linha][coluna] = float(valor)
+                A[linha][coluna] = float(valor.strip())
 
         for linha in range(0, quantidade_sistemas):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                B[linha][coluna] = float(valor)
+                B[linha][coluna] = float(valor.strip())
 
         return A, B, dimencao_matriz, quantidade_sistemas, margem_erro
 
@@ -104,11 +105,6 @@ def pivoteamento(A: np.array, b: np.array) -> np.array:
 
     return result
 
-#LU
-def pivoteamento(A: np.array, b: np.array) -> np.array:
-    print(b)
-    n = dimencao_matriz
-
 
 def pegar_maior_magnitude(b: np.array) -> float:
     maior: float = 0
@@ -123,54 +119,88 @@ def pegar_maior_magnitude(b: np.array) -> float:
 def pegar_x_inicial(A: np.array, b: np.array) -> np.array:
     xInicial: np.array = b.copy()
     xInicial.fill(0)
-    # print(xInicial)
 
     for i in range(b.size):
-        # print(f'b[i] = {b[i]}\nA[i][i] = {A[i][i]}\n')
         xInicial[i] = b[i] / A[i][i]
 
     return xInicial
 
 
-def resolver_sistema_gauss_jacob(A: np.array, b: np.array, X: np.array, margem_erro: float) -> np.array:
+def resolver_sistema_gauss_jacob(A: np.array,
+                                 b: np.array,
+                                 X: np.array,
+                                 margem_erro: float) -> np.array:
+    numero_iteracoes: int = 0
     novoX: np.array = X.copy()
-    novoX.fill(0)
+    erro_relativo: int = -1
 
-    for i in range(novoX.size):
-        novoX[i] = b[i]
+    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
+        numero_iteracoes += 1
 
-        for j, Aij in [(j, A[i][j]) for j in range(A.shape[0]) if j != i]:
-            novoX[i] -= Aij * X[j]
+        for i in range(X.size):
+            novoX[i] = b[i]
 
-        novoX[i] /= A[i][i]
+            for j in range(A.shape[0]):
+                if i != j:
+                    novoX[i] -= A[i][j] * X[j]
+            novoX[i] /= A[i][i]
 
-    print(f'novoX: {novoX}\n'
-          f'X: {X}\n')
-    diferenca_X = numpy.subtract(novoX, X)
-    erro_relativo = pegar_maior_magnitude(diferenca_X) / pegar_maior_magnitude(novoX)
+        diferenca_X = numpy.subtract(novoX, X)
+        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
-    print(f'erro_relativo: {erro_relativo}')
-    if erro_relativo <= margem_erro:
-        return novoX
-    else:
-        return resolver_sistema_gauss_jacob(A, b, novoX, margem_erro)
+        if erro_relativo <= margem_erro:
+            print(f'Sistema resolvido em {numero_iteracoes} iterações')
+            return novoX
+        else:
+            X = novoX
 
+    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
+    print('Solução até então: ', novoX)
+    print('Com erro relativo de: ', erro_relativo)
+    return None
+
+
+def resolver_sistema_gauss_seidel(A: np.array,
+                                  b: np.array,
+                                  X: np.array,
+                                  margem_erro: float) -> np.array:
+    numero_iteracoes: int = 0
+    novoX: np.array = X.copy()
+    erro_relativo: float = -1
+
+    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
+        numero_iteracoes += 1
+
+        for i in range(X.size):
+            novoX[i] = b[i]
+
+            for j in range(A.shape[0]):
+                if i != j:
+                    novoX[i] -= A[i][j] * novoX[j]
+            novoX[i] /= A[i][i]
+
+        diferenca_X = numpy.subtract(novoX, X)
+        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
+
+        if erro_relativo <= margem_erro:
+            print(f'Sistema resolvido em {numero_iteracoes} iterações')
+            return novoX
+        else:
+            X = novoX
+
+    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
+    print('Solução até então: ', novoX)
+    print('Com erro relativo de: ', erro_relativo)
+    return None
 
 
 # chamada pivoteamento para todos os sistemas
 for i in range(0, quantidade_sistemas):
-    pivoteamento(A.copy(), B[i])
+    pivoteamento(A.copy(), B[i].copy())
 
-print('\n\n\n')
+print('\n\n')
 
 print('Metodo Gauss-Jacob:')
 for i in range(0, quantidade_sistemas):
     print(A)
     print(resolver_sistema_gauss_jacob(A.copy(), B[i], pegar_x_inicial(A, B[i]), margem_erro))
-
-def main():
-
-
-
-if __name__ == '__main__':
-    main()
