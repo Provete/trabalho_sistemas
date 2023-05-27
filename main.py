@@ -1,12 +1,20 @@
 import numpy
 import numpy as np
 import sys
+import time
 
-NUMERO_MAXIMO_ITERACAO: int = 400
+
+def isfloat(string: str) -> bool:
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
+NOME_ENTRADA = sys.argv[1]
 
 
 def ler_entrada() -> tuple:
-    NOME_ENTRADA = sys.argv[1]
 
     with open(NOME_ENTRADA, 'r') as entrada:
         quantidade_sistemas, dimencao_matriz, margem_erro = entrada.readline().split(' ')
@@ -20,11 +28,13 @@ def ler_entrada() -> tuple:
 
         for linha in range(0, dimencao_matriz):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                A[linha][coluna] = float(valor.strip())
+                if isfloat(valor.strip()) and coluna < dimencao_matriz:
+                    A[linha][coluna] = float(valor.strip())
 
         for linha in range(0, quantidade_sistemas):
             for coluna, valor in enumerate(entrada.readline().split(' ')):
-                B[linha][coluna] = float(valor.strip())
+                if isfloat(valor.strip()) and coluna < dimencao_matriz:
+                    B[linha][coluna] = float(valor.strip())
 
         return A, B, dimencao_matriz, quantidade_sistemas, margem_erro
 
@@ -66,8 +76,8 @@ A, B, dimencao_matriz, quantidade_sistemas, margem_erro = ler_entrada()
 
 # Eliminação de Gauss
 def pivoteamento(A: np.array, b: np.array) -> np.array:
-    print(b)
     n = dimencao_matriz
+    start = time.time()
 
     for i in range(n - 1):
         pivo = A[i][i]
@@ -101,19 +111,64 @@ def pivoteamento(A: np.array, b: np.array) -> np.array:
         for j in range(i - 1, -1, -1):
             b[j] = b[j] - A[j][i] * result[i]
 
-    print(result)
+    print(f'resolvido em: {start - time.time()} segundos')
+    print('resultado: ', result)
 
     return result
 
 
-def pegar_maior_magnitude(b: np.array) -> float:
-    maior: float = 0
+class Lu:
+    def __init__(self, size):
+        self.size = size
+        self.sistema = np.zeros((size, size))
+        self.matrizL = np.zeros((size, size))
+        self.matrizU = np.zeros((size, size))
+        self.arrayY = np.zeros(size)
+        self.arrayR = np.zeros(size)
+        self.arrayX = np.zeros(size)
 
-    for valor in b:
-        if m.fabs(valor) > maior:
-            maior = m.fabs(valor)
+    def ImprimeMatriz(self, matriz):
+        for i in range(self.size):
+            print()
+            for j in range(self.size):
+                print(f'{matriz[i][j]:.2f}', end=' ')
+        print()
 
-    return maior
+    def ImprimeVetor(self, vetor):
+        for i in range(self.size):
+            print(f'{vetor[i]:.2f}')
+        print()
+
+    def OperacaoPivo(self, k):
+        for i in range(k + 1, self.size):
+            self.matrizL[i][k] = self.sistema[i][k] / self.sistema[k][k]
+            for j in range(k, self.size):
+                self.sistema[i][j] -= self.matrizL[i][k] * self.sistema[k][j]
+
+    def MatrizL(self):
+        for i in range(self.size):
+            self.matrizL[i][i] = 1.0
+            for j in range(i + 1, self.size):
+                self.matrizL[i][j] = 0.0
+
+    def MatrizU(self):
+        for i in range(self.size):
+            for j in range(i, self.size):
+                self.matrizU[i][j] = self.sistema[i][j]
+
+    def LY(self):
+        for i in range(self.size):
+            self.arrayY[i] = self.arrayR[i]
+            for j in range(i):
+                self.arrayY[i] -= self.matrizL[i][j] * self.arrayY[j]
+
+    def UX(self):
+        for i in range(self.size - 1, -1, -1):
+            sum = 0.0
+            for j in range(i + 1, self.size):
+                sum += self.matrizU[i][j] * self.arrayX[j]
+            self.arrayX[i] = (self.arrayY[i] - sum) / self.matrizU[i][i]
+
 
 
 def pegar_x_inicial(A: np.array, b: np.array) -> np.array:
@@ -130,12 +185,9 @@ def resolver_sistema_gauss_jacob(A: np.array,
                                  b: np.array,
                                  X: np.array,
                                  margem_erro: float) -> np.array:
-    numero_iteracoes: int = 0
     novoX: np.array = X.copy()
-    erro_relativo: int = -1
 
-    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
-        numero_iteracoes += 1
+    while True:
 
         for i in range(X.size):
             novoX[i] = b[i]
@@ -146,32 +198,22 @@ def resolver_sistema_gauss_jacob(A: np.array,
             novoX[i] /= A[i][i]
 
         diferenca_X = numpy.subtract(novoX, X)
-        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
+        erro_relativo: float = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
         if erro_relativo <= margem_erro:
-            print(f'Sistema resolvido em {numero_iteracoes} iterações')
             return novoX
         else:
             X = novoX
-
-    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
-    print('Solução até então: ', novoX)
-    print('Com erro relativo de: ', erro_relativo)
-    return None
 
 
 def resolver_sistema_gauss_seidel(A: np.array,
                                   b: np.array,
                                   X: np.array,
                                   margem_erro: float) -> np.array:
-    numero_iteracoes: int = 0
     novoX: np.array = X.copy()
-    erro_relativo: float = -1
 
-    while numero_iteracoes <= NUMERO_MAXIMO_ITERACAO:
-        numero_iteracoes += 1
-
-        for i in range(X.size):
+    while True:
+        for i in range(A.shape[0]):
             novoX[i] = b[i]
 
             for j in range(A.shape[0]):
@@ -180,27 +222,74 @@ def resolver_sistema_gauss_seidel(A: np.array,
             novoX[i] /= A[i][i]
 
         diferenca_X = numpy.subtract(novoX, X)
-        erro_relativo = np.abs(diferenca_X).max() / np.abs(novoX).max()
+        erro_relativo: float = np.abs(diferenca_X).max() / np.abs(novoX).max()
 
         if erro_relativo <= margem_erro:
-            print(f'Sistema resolvido em {numero_iteracoes} iterações')
             return novoX
         else:
             X = novoX
 
-    print(f'Numero de iterações passou de {NUMERO_MAXIMO_ITERACAO}, interrompendo...')
-    print('Solução até então: ', novoX)
-    print('Com erro relativo de: ', erro_relativo)
-    return None
-
 
 # chamada pivoteamento para todos os sistemas
+
+print('Eliminação de Gauss:')
 for i in range(0, quantidade_sistemas):
+
     pivoteamento(A.copy(), B[i].copy())
 
 print('\n\n')
 
 print('Metodo Gauss-Jacob:')
 for i in range(0, quantidade_sistemas):
-    print(A)
-    print(resolver_sistema_gauss_jacob(A.copy(), B[i], pegar_x_inicial(A, B[i]), margem_erro))
+    print('Solução: ')
+
+    start = time.time()
+    print(resolver_sistema_gauss_jacob(A.copy(), B[i].copy(), pegar_x_inicial(A, B[i]), margem_erro))
+    print(f'Resolvido em {start - time.time()} segundos')
+
+print('\n\n')
+
+print('Metodo Gauss-Seidel:')
+for i in range(0, quantidade_sistemas):
+    print('Solução: ')
+
+    start = time.time()
+    print(resolver_sistema_gauss_seidel(A.copy(), B[i].copy(), pegar_x_inicial(A, B[i]), margem_erro))
+    print(f'Resolvido em {start - time.time()} segundos')
+
+with open(NOME_ENTRADA, 'r') as file:
+    # Leitura da quantidade de matrizes, tamanho do vetor e precisão
+    line = file.readline().split()
+    num_matrices = int(line[0])
+    size = int(line[1])
+    matrizA = np.zeros((size, size))
+
+    # Leitura da matriz A
+    for i in range(size):
+        matrizA[i] = list(map(float, file.readline().split()))
+
+    for _ in range(num_matrices):
+        lu = Lu(size)
+
+        # Definir a matriz A para cada iteração
+        lu.sistema = matrizA.copy()
+
+        # Leitura da matriz B
+        lu.arrayR = list(map(float, file.readline().split()))
+
+        start = time.time()
+        for k in range(size - 1):
+            lu.OperacaoPivo(k)
+
+        lu.MatrizL()
+
+        lu.MatrizU()
+
+        lu.LY()
+        lu.ImprimeVetor(lu.arrayY)
+
+        lu.UX()
+
+        print(f'Resolvido em {start - time.time()} segundos')
+        print('Resultado: ')
+        lu.ImprimeVetor(lu.arrayX)
